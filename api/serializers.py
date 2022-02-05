@@ -16,30 +16,32 @@ class UserLoginSerializer(serializers.Serializer):
     def validate(self, attr):
         username = attr.get('username')
         password = attr.get("password")
-        user = ''
+        self.user = None
 
         user_count = User.objects.filter(username=username).count()
 
         if user_count != 0:
-            user = User.objects.get(username=username).username
+            self.user = User.objects.get(username=username).username
         else:
             user_count = User.objects.filter(email=username).count()
             if user_count==0:
                 raise serializers.ValidationError("Invalid Credentials!")
             else:
-                user = User.objects.get(email=username).username
-        username = user
+                self.user = User.objects.get(email=username).username
+        username = self.user
 
         if username and password:
-            user = authenticate(request=self.context.get('request'), username=username, password=password)
+            self.user = authenticate(request=self.context.get('request'), username=username, password=password)
 
-            if not user:
+            if not self.user:
                 raise serializers.ValidationError('Unable to log in with provided credentials.')
         else:
             raise serializers.ValidationError('Must include "username" and "password".')
         
         data = {}
-        refresh = self.get_token(username)
+        refresh = self.get_token(self.user)
+        # print("---------------------------")
+        # print(refresh, refresh.access_token)
         data['refresh'] = str(refresh)
         data['access'] = str(refresh.access_token)
 
